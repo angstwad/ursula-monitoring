@@ -19,16 +19,11 @@ class CloudMetrics(object):
         self.cloud = shade.openstack_cloud()
 
     def get_projects(self):
-        return {
-            project['id']: project['name']
-            for project in self.cloud.search_projects()
-        }
+        return (project['id'] for project in self.cloud.list_projects())
 
     def get_quotas(self, project_ids):
-        return [
-            self.cloud.nova_client.quotas.get(id_)._info.copy()
-            for id_ in project_ids
-        ]
+        return (self.cloud.nova_client.quotas.get(id_)._info.copy()
+                for id_ in project_ids)
 
     def graphite_print(self, quotas):
         utime = time.time()

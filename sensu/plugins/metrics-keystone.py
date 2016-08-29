@@ -39,10 +39,8 @@ class CloudMetrics(object):
 
     def users_per_project(self):
         UsersPerProject = namedtuple('UsersPerProject', 'proj_id, num_users')
-        return [
-            UsersPerProject(proj.id, len(proj.list_users()))
-            for proj in self.projects
-        ]
+        return (UsersPerProject(proj.id, len(proj.list_users()))
+                for proj in self.projects)
 
     def graphite_print(self, users, projects, users_per_proj):
         utime = time.time()

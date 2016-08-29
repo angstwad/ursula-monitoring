@@ -22,30 +22,25 @@ class CloudMetrics(object):
         self.cloud = shade.openstack_cloud()
 
     def get_projects(self):
-        return {
-            project['id']: project['name']
-            for project in self.cloud.search_projects()
-        }
+        return (project['id'] for project in self.cloud.list_projects())
 
     def get_usage(self, project_ids, minutes, hours, days):
         stop = datetime.now()
         start = stop - timedelta(minutes=minutes, hours=hours, days=days)
-        usage = []
         for id_ in project_ids:
-            _usage = (
+            usage = (
                 self.cloud.nova_client.usage.get(id_, start, stop).to_dict())
-            _usage['id'] = id_
-            usage.append(_usage)
-        return usage
+            usage['id'] = id_
+            yield usage
 
-    def graphite_print(self, quotas):
+    def graphite_print(self, usage):
         utime = time.time()
         metric_path = "usage.nova.project_id.{id}.{name}"
         outstr = "{metric_path} {value} {time}"
 
-        for quota in quotas:
-            id_ = quota['id']
-            for key, val in quota.items():
+        for usg in usage:
+            id_ = usg['id']
+            for key, val in usg.items():
                 if key in ['id', 'start', 'stop', 'server_usages']:
                     continue
                 path = metric_path.format(id=id_, name=key)
