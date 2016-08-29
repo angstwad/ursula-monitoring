@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+import sys
 import time
+import traceback
 from collections import namedtuple
 
 import shade
@@ -11,6 +13,8 @@ OK = 0
 WARNING = 1
 CRITICAL = 2
 UNKNOWN = 3
+V2_ERR_MSG = 'This script assumes it runs with v2 auth and a v2 keystone ' \
+             'client. Please use a v2 stackrc or complain very loudly.'
 
 
 class CloudMetrics(object):
@@ -22,7 +26,16 @@ class CloudMetrics(object):
     @property
     def projects(self):
         if self._projects is None:
-            self._projects = self.cloud.keystone_client.tenants.list()
+            try:
+                self._projects = self.cloud.keystone_client.tenants.list()
+            except AttributeError:
+                # Why AttributeError?  Because the calls that I make to the
+                # internal client will thrown an attribute error if it doesn't
+                # have 'tenants'. This is due to the v3 API, and I'm not
+                # planning on that ATM.
+                traceback.print_exc()
+                print(V2_ERR_MSG, file=sys.stderr)
+                sys.exit(CRITICAL)
         return self._projects
 
     @property
@@ -68,7 +81,12 @@ class CloudMetrics(object):
 
 
 def main():
-    CloudMetrics().run()
+    try:
+        CloudMetrics().run()
+    except shade.exc.OpenStackCloudException:
+        traceback.print_exc()
+        print(V2_ERR_MSG, file=sys.stderr)
+        sys.exit(CRITICAL)
 
 
 if __name__ == '__main__':

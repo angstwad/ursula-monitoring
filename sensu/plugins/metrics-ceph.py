@@ -1,9 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
+import sys
 import time
 import argparse
+import traceback
 
-import rados
+OK = 0
+WARNING = 1
+CRITICAL = 2
+UNKNOWN = 3
+
+try:
+    import rados
+except ImportError:
+    traceback.print_exc()
+    print('This check assumes it runs on a ceph instance with python-rados '
+          'installed; please insure this instance is a ceph-osd node with '
+          'python-rados installed.', file=sys.stderr)
+    sys.exit(CRITICAL)
 
 
 class MetricsCheck(object):
