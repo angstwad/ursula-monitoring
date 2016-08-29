@@ -16,18 +16,32 @@ UNKNOWN = 3
 class CloudMetrics(object):
     def __init__(self):
         self.cloud = shade.openstack_cloud()
+        self._projects = None
+        self._users = None
+
+    @property
+    def projects(self):
+        if self._projects is None:
+            self._projects = self.cloud.keystone_client.tenants.list()
+        return self._projects
+
+    @property
+    def users(self):
+        if self._users is None:
+            self._users = self.cloud.list_users()
+        return self._users
 
     def num_projects(self):
-        return len(self.cloud.keystone_client.tenants.list())
+        return len(self.projects)
 
     def num_users(self):
-        return len(self.cloud.keystone_client.users.list())
+        return len(self.users)
 
     def users_per_project(self):
         UsersPerProject = namedtuple('UsersPerProject', 'proj_id, num_users')
         return [
             UsersPerProject(proj.id, len(proj.list_users()))
-            for proj in self.cloud.keystone_client.tenants.list()
+            for proj in self.projects
         ]
 
     def graphite_print(self, users, projects, users_per_proj):
